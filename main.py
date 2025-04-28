@@ -293,5 +293,5 @@ def dashboard():
                        streak=streak) # notifications
 
 if __name__ == "__main__":
-    # need to set the default to 0.0.0.0 means any host, so any ip address can connect to it.
+    # need to set the default to 0.0.0.0 means any host, so any ip address can connect to it
     app.run(debug=True, port=5000, host="0.0.0.0")
