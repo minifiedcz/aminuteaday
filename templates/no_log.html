@@ -1,0 +1,10 @@
+{% extends "base_session.html" %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+    <h1 style="text-align: center; display: none;">Hello, {{ username }}!</h1>
+    <h1 style="display: none; text-align: center; margin-top: -30px; padding-top: 0;">Log data for {{ date }}</h1>
+    <h1 style="text-align: center;">You're too keen!</h1>
+    <p style="text-align: center;">You have already logged for today ({{ date }}).</p>
+{% endblock %}

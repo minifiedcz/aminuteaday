@@ -1,0 +1,183 @@
+{% extends "base_home.html" %}
+
+{% block title %}sign up{% endblock %}
+
+{% block content %}
+  <div class="login-content">
+    <h1 class="login-title">sign up</h1>
+
+    <!-- the handlers like the onsubmit and the onclick are actually ones that are supposed to return true or false to see if the default action should happen or not, so in this case the form won't submit until it is validated by the validateForm function.-->
+    <form method="POST" action="{{ url_for('handle_signup') }}" onsubmit="return validateForm()">
+      <input
+        type="text"
+        id="username"
+        name="username"
+        placeholder="username"
+        class="form-input"
+        oninput="validateUsername(); updateSubmitButton();"
+        required
+      />
+      <!-- but i also learned that you can use the stuff like oninput normally when it not has a default action, so in that case the function doesn't return anything, and nothing is falsy so it won't run the default.-->
+      <div id="err-username" class="input-error hidden"></div>
+
+      <input
+        type="password"
+        id="password"
+        name="password"
+        placeholder="password"
+        class="form-input"
+        oninput="validatePassword(); updateSubmitButton();"
+        required
+      />
+      <div id="err-password" class="input-error hidden"></div>
+
+      <input
+        type="password"
+        id="confirm_password"
+        name="confirm_password"
+        placeholder="confirm password"
+        class="form-input"
+        oninput="validateConfirmPassword(); updateSubmitButton();"
+        required
+      />
+      <div id="err-confirm_password" class="input-error hidden"></div>
+
+      <input
+        list="timezones"
+        id="timezone"
+        name="timezone"
+        placeholder="timezone"
+        class="form-input"
+        oninput="validateTimezone(); updateSubmitButton();"
+        required
+      />
+
+      <!-- a datalist is like a input mixed with a select. so they can type and select, it's kinda like the google search bar.-->
+      <datalist id="timezones">
+        {% for tz in timezones %}
+          <option value="{{ tz }}">
+        {% endfor %}
+      </datalist>
+      <div id="err-timezone" class="input-error hidden"></div>
+
+      <!-- yep, very cliche -->
+      <p class="signup-text">
+        Already have an account?
+        <a href="{{ url_for('login') }}">log in</a>.
+      </p>
+
+      <button type="submit" class="login-btn" disabled>
+        sign up
+      </button>
+    </form>
+  </div>
+
+  <script>
+    // this one ensures that the submit buttons is disabled and enabled at the right times, this helps to prevent bad entries - instead of telling the user not to do it, I just won't let them do it instead.
+    document.addEventListener("DOMContentLoaded", () => {
+      const inputs = document.querySelectorAll("input");
+      inputs.forEach(i => i.addEventListener("input", updateSubmitButton));
+      updateSubmitButton();
+    });
+
+    function updateSubmitButton() {
+      const btn = document.querySelector("button[type='submit']");
+      btn.disabled = !validateForm();
+    }
+
+    function validateUsername() {
+      const u = document.getElementById("username");
+      const v = u.value.trim();
+      const rx = /^(?!.*[-_].*[-_])[a-zA-Z0-9_-]{3,20}$/;
+      if (!rx.test(v)) {
+        setValidationState(u, false,
+          "Username must be 3–20 characters: letters/numbers and (optionally) one dash or underscore.");
+        return;
+      }
+      fetch(`/check_username?username=${encodeURIComponent(v)}`)
+        .then(r => r.json())
+        .then(data => {
+          setValidationState(u, !data.exists,
+            data.exists ? "Username is already taken." : "");
+          updateSubmitButton();
+        })
+        .catch(() => {
+          setValidationState(u, false, "Error checking username.");
+        });
+    }
+
+    function validatePassword() {
+      const p = document.getElementById("password");
+      const v = p.value;
+      const rx = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^\w\s]).{8,}$/;
+      setValidationState(p, rx.test(v),
+        "Password must be 8+ chars, include upper, lower, number & symbol.");
+      validateConfirmPassword();
+    }
+
+    function validateConfirmPassword() {
+      const pw = document.getElementById("password").value;
+      const c = document.getElementById("confirm_password");
+      const val = c.value.trim();
+      if (!val) {
+        setValidationState(c, null, "");
+        return;
+      }
+      setValidationState(c, c.value === pw, "Passwords do not match.");
+    }
+
+    function validateTimezone() {
+      const tz = document.getElementById("timezone");
+      const v = tz.value.trim();
+      const opts = [...document.getElementById("timezones").options].map(o => o.value);
+      setValidationState(tz, opts.includes(v), "Please choose a valid timezone.");
+    }
+
+    function setValidationState(inp, ok, msg) {
+      const box = document.getElementById(`err-${inp.name}`);
+      const hasInput = inp.value.trim().length > 0;
+
+      if (ok === false && hasInput) {
+        // if the user didn't type the right stuff in the box it will be red with error message
+        inp.classList.add("invalid");
+        inp.classList.remove("valid");
+        box.textContent = msg;
+        box.classList.remove("hidden");
+      } else if (ok === true) {
+        // if the box is valid, it will be green with no error message
+        inp.classList.remove("invalid");
+        inp.classList.add("valid");
+        box.textContent = "";
+        box.classList.add("hidden");
+      } else {
+        // if the box is empty, not green or red and no error message
+        inp.classList.remove("invalid", "valid");
+        box.textContent = "";
+        box.classList.add("hidden");
+      }
+    }
+
+    function validateForm() {
+      validateUsername();
+      validatePassword();
+      validateConfirmPassword();
+      validateTimezone();
+      return document.querySelectorAll("input.invalid").length === 0;
+    }
+  </script>
+
+  <style>
+    .input-error.hidden {
+      display: none !important;
+      margin: 0 !important;
+      padding: 0 !important;
+    }
+
+    .container {
+    width: 70% !important;
+    /* this makes it centred with the margin of 5% top and bottom, i learned the auto stuff from the Grok HTML course*/
+    margin: 5% auto 5% auto;
+    max-width: 800px;
+  }
+  </style>
+{% endblock %}

@@ -1,0 +1,21 @@
+{% extends "base_home.html" %}
+
+{% block title %}Home – aminuteaday{% endblock %}
+
+{% block content %}
+  <div class="home-content">
+    <h1 class="home-title">aminuteaday</h1>
+    <p class="home-slogan">Make time management natural.</p>
+
+    <img
+      src="{{ url_for('static', filename='images/image.jpg') }}"
+      alt="Make time management natural"
+      class="home-image"
+    />
+
+    <div class="home-buttons">
+      <a href="{{ url_for('signup') }}" class="signup-home">sign up</a>
+      <a href="{{ url_for('login') }}" class="login-home">log in</a>
+    </div>
+  </div>
+{% endblock %}

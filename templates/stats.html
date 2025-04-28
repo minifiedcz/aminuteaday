@@ -1,0 +1,316 @@
+{% extends "base_session.html" %}
+
+{% block title %}Stats{% endblock %}
+
+{% block content %}
+<!-- i was paranoid to break stuff at this point so I was too scared even to delete this h1 so hid it instead-->
+<h1 style="display: none;">Hello, {{ username }}!</h1>
+<h1 style="text-align: center;">Statistics</h1>
+<h2 style="margin-top: 1em; text-align: center;">Summary for today:</h2>
+
+{% if has_logged_today %}
+<!-- this gives that summary for today thing, it includes the pie chart and that summary box of the stuff you did -->
+
+<!-- summary box -->
+<div style="max-height: 300px; margin: auto; max-width: 600px; overflow-y: auto; border: 1px solid #ccc; padding: 1em; margin-top: 1em;">
+    <table style="width: 100%; text-align: center;">
+        {% for activity, mins in activity_summary %}
+        <tr>
+            <td>
+                Today, you did <b>{{ activity.lower() }}</b> for about
+            </td>
+            <td>
+                <div style="font-size: 2em;">
+                    <b>{{ (mins // 60)|int if mins >= 60 else mins }}</b>
+                </div>
+                <div style="letter-spacing: 1px;">
+                    {{ 'HOURS' if mins >= 60 else 'MINUTES' }}
+                </div>
+            </td>
+        </tr>
+        {% endfor %}
+    </table>
+</div>
+
+<!-- pie chart -->
+<div style="max-width: 600px; margin: auto; margin-top: 2em;">
+    <canvas id="todayActivityChart"></canvas>
+</div>
+{% else %}
+<!-- i have to have everything in the else as well in HTML because the javascript will try to call it so it's gotta be there even if I'm not going to show it to the user-->
+<div style="display: none; max-height: 300px; overflow-y: auto; border: 1px solid #ccc; padding: 1em; margin-top: 1em;">
+    <table style="width: 100%; text-align: center;">
+        {% for activity, mins in activity_summary %}
+        <tr>
+            <td style="font-size: 1.2em;">
+                Today, you did <b>{{ activity.lower() }}</b> for about
+            </td>
+            <td>
+                <div style="font-size: 3em;">
+                    <b>{{ (mins // 60)|int if mins >= 60 else mins }}</b>
+                </div>
+                <div style="letter-spacing: 2px; font-size: 1.2em;">
+                    {{ 'HOURS' if mins >= 60 else 'MINUTES' }}
+                </div>
+            </td>
+        </tr>
+        {% endfor %}
+    </table>
+</div>
+
+<div style="display: none; width: 600px; margin: auto; margin-top: 2em;">
+    <canvas id="todayActivityChart"></canvas>
+</div>
+<p style="text-align: center;">You haven't logged yet today! <a href="{{ url_for('logs') }}">Log your time</a>.</p>
+{% endif %}
+
+{% if not has_logged_in_past_week %}
+<!-- since all the data has to be shown of the past week, if there's nod ata there's no point in showing it-->
+<!-- all the charts in here aren't actually shown, only message telling the user they haven't logged for a week, the chart stuff just needs to be in the HTML beacuse the JS needs to get it.-->
+
+<h2 style="margin-top: 1em; text-align: center;">Sleep insights</h2>
+
+<!-- this pie chart got cut out of the project because it was too hard to get it to work -->
+<!-- but I can't delete or comment it bc the JS will try to get it underneath, and I don't want to delete all the effort it took to get it to work that far.-->
+<div style="display: none; max-width: 500px; margin: 3em auto 1em auto; text-align: center;">
+    <h2 style="margin-bottom: 0.5em;">Distribution Insights</h2>
+    <label for="distributionRange">Show data for:</label>
+    <select id="distributionRange" style="margin-left: 0.5em; padding: 0.3em 0.6em;">
+        <option value="0" selected>All time</option>
+        <option value="7">Past week</option>
+        <option value="30">Past month</option>
+        <option value="365">Past year</option>
+    </select>
+    <canvas id="distributionPieChart" style="margin-top: 1em;"></canvas>
+</div>
+
+<p style="text-align: center;">You haven't logged in the past week!</p>
+
+<div style="display: none; width: 700px; margin: 1em auto;">
+    <canvas id="sleepBarChart"></canvas>
+</div>
+
+<h2 style="text-align: center;">Quality insights</h2>
+
+<div style="display: none; width: 700px; margin: 1em auto;">
+    <canvas id="qualityBarChart"></canvas>
+    </div>
+    <p style="text-align: center;">You haven't logged in the past week!</p>
+
+    <h2 style="text-align: center;">Activity insights</h2>
+    <div style="display: none; width: 700px; margin: 2em auto; text-align: center;">
+        <label for="activitySelector">Activity:</label>
+    <select id="activitySelector" style="margin: 0.5em; padding: 0.4em;">
+        {% for activity in activity_names %}
+            <option value="{{ activity }}">{{ activity }}</option>
+        {% endfor %}
+    </select>
+    <canvas id="activityBarChartMinutes"></canvas>
+    <canvas id="activityBarChartHours" style="display: none;"></canvas>
+</div>
+<p style="text-align: center;">You haven't logged in the past week!</p>
+{% else %}
+<h2 style="margin-top: 1em; text-align: center;">Sleep insights</h2>
+
+<!-- the pie chart that got cut -->
+<div style="display: none; max-width: 500px; margin: 3em auto 1em auto; text-align: center;">
+    <h2 style="margin-bottom: 0.5em;">Distribution Insights</h2>
+    <label for="distributionRange">Show data for:</label>
+    <select id="distributionRange" style="margin-left: 0.5em; padding: 0.3em 0.6em;">
+        <option value="0" selected>All time</option>
+        <option value="7">Past week</option>
+        <option value="30">Past month</option>
+        <option value="365">Past year</option>
+    </select>
+    <canvas id="distributionPieChart" style="margin-top: 1em;"></canvas>
+</div>
+
+<!-- sleep bar chart -->
+<div style="max-width: 700px; margin: 1em auto; align-items: center;">
+    <canvas id="sleepBarChart"></canvas>
+</div>
+
+<h2 style="text-align: center;">Quality insights</h2>
+
+<!-- quality bar chart -->
+<div style="max-width: 700px; margin: 1em auto; align-items: center;">
+    <canvas id="qualityBarChart"></canvas>
+</div>
+
+<h2 style="text-align: center; margin-bottom: 0em; padding-bottom: 0em;">Activity insights</h2>
+
+<!-- time spent per activity bar chart (the one with the select)-->
+<div style="max-width: 700px; margin: 0em auto; text-align: center;">
+    <label style="margin-top: 0em; padding-top: 0em;" for="activitySelector">Activity:</label>
+    <select id="activitySelector" style="margin: 0.5em; padding: 0.4em;">
+        {% for activity in activity_names %}
+            <option value="{{ activity }}">{{ activity }}</option>
+        {% endfor %}
+    </select>
+
+    <!-- because where there's too many minutes spent on something it will look weird, I made a separate chart to display by hours if the minutes is bigger than 120-->
+    <canvas id="activityBarChartMinutes"></canvas>
+    <canvas id="activityBarChartHours" style="display: none;"></canvas>
+</div>
+{% endif %}
+<script>
+    // current day pie chart
+    const chartLabels = JSON.parse('{{ labels|tojson|safe }}');
+    const chartData = JSON.parse('{{ values|tojson|safe }}');
+
+    new Chart(document.getElementById('todayActivityChart').getContext('2d'), {
+        type: 'pie',
+        data: {
+            labels: chartLabels,
+            datasets: [{ label: 'Time spent (minutes)', data: chartData, borderWidth: 1 }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+                legend: { position: 'bottom' },
+                title: { display: true, text: 'Time Spent on Activities Today' }
+            }
+        }
+    });
+
+    // pie chart that got cut
+    const distributionCtx = document.getElementById('distributionPieChart').getContext('2d');
+    const distributionChart = new Chart(distributionCtx, {
+        type: 'pie',
+        data: {
+            labels: chartLabels,
+            datasets: [{ label: 'Time spent (minutes)', data: chartData, borderWidth: 1 }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { position: 'bottom' },
+                title: { display: false }
+            }
+        }
+    });
+
+    document.getElementById('distributionRange').addEventListener('change', async (e) => {
+        const days = parseInt(e.target.value);
+        const res = await fetch(`/get_distribution?days=${days}`);
+        const json = await res.json();
+        distributionChart.data.labels = json.labels;
+        distributionChart.data.datasets[0].data = json.values;
+        distributionChart.update();
+    });
+
+    // sleep bar chart
+    const sleepLabels = JSON.parse('{{ sleep_labels|tojson|safe }}');
+    const sleepHours = JSON.parse('{{ sleep_values|tojson|safe }}');
+    new Chart(document.getElementById('sleepBarChart').getContext('2d'), {
+        type: 'bar',
+        data: {
+            labels: sleepLabels,
+            datasets: [{ label: 'Hours of Sleep', data: sleepHours, backgroundColor: 'rgba(54, 162, 235, 0.6)', borderColor: 'rgba(54, 162, 235, 1)', borderWidth: 1 }]
+        },
+        options: {
+            scales: {
+                y: { beginAtZero: true, grid: { display: false }, title: { display: true, text: 'Hours' } },
+                x: { grid: { display: false }, title: { display: true, text: 'Day of Week' } }
+            },
+            plugins: { title: { display: true, text: 'Sleep Duration Over the Past Week' }, legend: { display: false } }
+        }
+    });
+
+    // quality bar chart
+    const qualityLabels = JSON.parse('{{ quality_labels|tojson|safe }}');
+    const qualityScores = JSON.parse('{{ quality_values|tojson|safe }}');
+    new Chart(document.getElementById('qualityBarChart').getContext('2d'), {
+        type: 'bar',
+        data: {
+            labels: qualityLabels,
+            datasets: [{ label: 'Quality Score (%)', data: qualityScores, backgroundColor: 'rgba(75, 192, 192, 0.6)', borderColor: 'rgba(75, 192, 192, 1)', borderWidth: 1 }]
+        },
+        options: {
+            scales: {
+                y: { beginAtZero: true, max: 100, grid: { display: false }, title: { display: true, text: 'Quality (%)' } },
+                x: { grid: { display: false }, title: { display: true, text: 'Day of Week' } }
+            },
+            plugins: { title: { display: true, text: 'Daily Quality Scores (Past Week)' }, legend: { display: false } }
+        }
+    });
+
+    // activity bar chart (minutes or hours one with the select)
+    const activitySelect = document.getElementById('activitySelector');
+    const ctxMinutes = document.getElementById('activityBarChartMinutes').getContext('2d');
+    const ctxHours = document.getElementById('activityBarChartHours').getContext('2d');
+    let chartMinutes, chartHours;
+
+    // i learned about async functions in this project, it's actually surprisingly easy, it's basically just a function that you can use await in, other than that it's just a normal function
+    async function updateActivityChart(activityName) {
+        // this is a GET requrest but the default thing in JS would be the GET like the multiply sign in math so there's no need to specify that it's a GET request
+
+        // and all the await does is that it waits for the stuff to finish before moving on to the next line
+        const res = await fetch(`/get_activity_minutes?activity=${encodeURIComponent(activityName)}`);
+        const data = await res.json();
+
+        // the ... means to spread the array so it will become just an array instead of an array with just one array inside it (lowers the level of the array, like that thing explained in the Python Grok course)
+        const max = Math.max(...data.values);
+        const showHours = max > 120;
+        const converted = showHours ? data.values.map(v => Math.round((v / 60) * 10) / 10) : data.values;
+        const unit = showHours ? 'Hours' : 'Minutes';
+
+        // the ? : is an if statement condition ? stuff to do if true : stuff to do if false
+        document.getElementById('activityBarChartMinutes').style.display = showHours ? 'none' : 'block';
+        document.getElementById('activityBarChartHours').style.display = showHours ? 'block' : 'none';
+
+        const chartRef = showHours ? chartHours : chartMinutes;
+        const ctx = showHours ? ctxHours : ctxMinutes;
+
+        if (chartRef) {
+            chartRef.data.labels = data.labels;
+            chartRef.data.datasets[0].data = converted;
+            chartRef.options.plugins.title.text = `Time Spent on ${activityName} (Past Week)`;
+            chartRef.options.scales.y.title.text = unit;
+            chartRef.update();
+        } else {
+            const newChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: data.labels,
+                    datasets: [{
+                        label: `${unit} Spent`,
+                        data: converted,
+                        backgroundColor: 'rgba(255, 159, 64, 0.6)',
+                        borderColor: 'rgba(255, 159, 64, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: { display: false },
+                            title: { display: true, text: unit }
+                        },
+                        x: {
+                            grid: { display: false },
+                            title: { display: true, text: 'Day of Week' }
+                        }
+                    },
+                    plugins: {
+                        title: { display: true, text: `Time Spent on ${activityName} (Past Week)` },
+                        legend: { display: false }
+                    }
+                }
+            });
+            if (showHours) chartHours = newChart;
+            else chartMinutes = newChart;
+        }
+    }
+
+    // this makes the activity distribution load whne the page loads
+    updateActivityChart(activitySelect.value);
+
+    // this makes it change the moment the user changes the select value.
+    activitySelect.addEventListener('change', () => {
+        updateActivityChart(activitySelect.value);
+    });
+</script>
+{% endblock %}

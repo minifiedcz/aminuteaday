@@ -1,0 +1,10 @@
+database creation: (mr b video)
+sqlite3 music.db
+.read create.sql
+.quit
+
+viewing a database in sqlite plugin
+click on database in the sidebar (right click)
+select "Open Database"
+SQLITE EXPLORER appears at the bottom left, open it up, see your database there
+Expand your database, you will then see your tables. click the triangle on the right.

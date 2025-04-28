@@ -1,0 +1,111 @@
+{% extends "base_session_wide.html" %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+    <h1 style="text-align: center;">Hello, {{ username }}!</h1>
+    <p class="login-title" style="text-align: center; margin-bottom: 0; padding-bottom: 0; font-size: 1.5em; margin-top: 1em; padding-top: 0;">Notifications</p>
+    {% if logged %}
+        <p style="text-align: center;">You have logged today!</p>
+    {% else %}
+        <p style="text-align: center;">You haven't logged today. <a href="{{ url_for('logs') }}">Log your time</a>.</p>
+    {% endif %}
+    <p style="text-align: center;">You have used aminuteaday for <b>{{ days_tracked }}</b> days!</p>
+    <!-- the streak will not display if it's zero or 1. It will be black for 2, green for 3, orange for 4-5, deeppink for 6-9, blue for 10-25, purple for 26-50, and gold for 51+. -->
+    {% if streak >= 2 %}
+        {% if streak == 2 %}
+            {% set streak_color = 'black' %}
+        {% elif streak == 3 %}
+            {% set streak_color = 'green' %}
+        {% elif streak <= 5 %}
+            {% set streak_color = 'orange' %}
+        {% elif streak <= 9 %}
+            {% set streak_color = 'deeppink' %}
+        {% elif streak <= 25 %}
+            {% set streak_color = 'blue' %}
+        {% elif streak <= 50 %}
+            {% set streak_color = 'purple' %}
+        {% elif streak > 50 %}
+            {% set streak_color = 'gold' %}
+        {% endif %}
+
+        <p style="text-align: center; color: {{ streak_color }};">
+            You have logged for
+            <b>{{ streak }}</b>
+            days in a row!
+        </p>
+    {% endif %}
+
+    <p class="login-title" style="text-align: center; font-size: 1.5em; margin-top: 1em; padding-top: 0;">Monthly Summary</p>
+    
+    {% if logged_this_month %}
+        <!-- the monthly summary -->
+         <!-- display: flex means the stuff is lined horizontally (the default is they move down vertically)
+         justify-content: center makes it so that the stuff is centered
+         but when it was centred the pie chart was overlapping with the table, so I had to add a gap: 5em to make it not overlap
+         align-items: flex-start aligns the whole horizontal row at the top instead of the middle
+         -->
+        <div style="display: flex; justify-content: center; gap: 5em; align-items: flex-start; margin-top: 1em;">
+            <!-- pie chart -->
+            <div style="margin-left: -100px; width: 400px;">
+                <!-- the sizes are hardcoded beacuse it's just a prototype, getting it to work on the macbook is enough -->
+                <canvas id="activityPieChart"></canvas>
+            </div>
+            <!-- the table -->
+            <div style="margin-left: -100px; max-width: 600px; max-height: 400px; overflow-y: auto; border: 1px solid #ccc; padding: 1em;">
+                <!-- the overflow-y: auto means the scrollbar appears when the table is too long to fit in it -->
+                <table style="width: 100%; text-align: center;">
+                    {% for activity, mins in activity_summary %}
+                    <tr>
+                        <td>
+                            This month, you did <b>{{ activity.lower() }}</b> for about
+                        </td>
+                        <td>
+                            <div style="font-size: 2em;">
+                                <b>{{ (mins // 60)|int if mins >= 60 else mins }}</b>
+                            </div>
+                            <div style="letter-spacing: 1px;">
+                                {{ 'HOURS' if mins >= 60 else 'MINUTES' }}
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </table>
+            </div>
+        </div>
+    {% else %}
+        <p style="text-align: center;">Awww what? You haven't logged in the past 30 days!</p>
+    {% endif %}
+
+    <script>
+        const chartLabels = JSON.parse('{{ labels|tojson|safe }}');
+        const chartData = JSON.parse('{{ values|tojson|safe }}');
+
+        const ctx = document.getElementById('activityPieChart').getContext('2d');
+        const pieChart = new Chart(ctx, {
+            type: 'pie',
+            data: {
+                labels: chartLabels,
+                datasets: [{
+                    label: 'Time spent (minutes)',
+                    data: chartData,
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    },
+                    title: {
+                        display: true,
+                        text: 'Time Spent on Activities (Past 30 Days)'
+                    }
+                }
+            }
+        });
+    </script>
+
+{% endblock %}

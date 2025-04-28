@@ -1,0 +1,23 @@
+{% extends "base_session.html" %}
+
+{% block title %}Stats{% endblock %}
+
+{% block content %}
+    <h1 style="display: none;">Hello, {{ username }}!</h1>
+    <h1 style="text-align: center;">Statistics</h1>
+    <hr style="margin: 20px 0;">
+    <h2 style="text-align: center;">Welcome Message</h2>
+    <p style="text-align: center;">Welcome to your stats page!</p>
+    <p style="text-align: center;">This is where you can see your stats.</p>
+    <p style="text-align: center;">You currently don't have any stats to show.</p>
+    <p style="text-align: center;">Log your first event to see your stats! <a href="{{ url_for('logs') }}">Log your time</a>.</p>
+    <hr style="margin: 20px 0;">
+    <h2 style="text-align: center;">Summary for today</h2>
+    <p style="text-align: center;">Daily summary will pop up here!</p>
+    <h2 style="text-align: center; margin-top: 20px;">Sleep insights</h2>
+    <p style="text-align: center;">Sleep insights will pop up here!</p>
+    <h2 style="text-align: center; margin-top: 20px;">Quality insights</h2>
+    <p style="text-align: center;">Quality insights will pop up here!</p>
+    <h2 style="text-align: center; margin-top: 20px;">Activity insights</h2>
+    <p style="text-align: center;">Activity insights will pop up here!</p>
+    {% endblock %}

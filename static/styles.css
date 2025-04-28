@@ -1,0 +1,287 @@
+/* global stuff that is done to keep some stuff consistent across the site */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+  
+  body {
+    background-color: white;
+    color: black;
+    font-family: Arial, sans-serif;
+    line-height: 1.4;
+  }
+  
+  /* this is what gives that minimalistic fat margin white space on the sides of each page, though I had to adjust it with internal CSS for some pages (hence why I had base_session_narrow.html and stuff like that) */
+  .container {
+    width: 50%;
+    margin: 5% auto 5% auto;
+  }
+  
+  /* this is the thing that is used on all the HTML templates so that the navbar looks consistent, like that lesson that we had on the styling and stuff how consistency is key*/
+  .navbar {
+    position: sticky; /* this way the user won't scroll past the navbar, which would be kind of weird */
+    top: 0;
+    z-index: 1000; /* basically, the bigger the number, means the more on top it is, so if I set to 1000 nothing is going to be on top of it unless I got 1001 other elements */
+    display: flex; /* this makes the stuff inside the navbar stack horizontally instead of vertically*/
+    justify-content: space-between; /*this is equivalent to turning on the MS word setting called justified*/
+    align-items: center;
+    background-color: white;
+    padding: 1em 2em;
+    border-bottom: 1px solid #ccc;
+    text-transform: lowercase;
+  }
+  
+  /* i made the navbar structured so that the justified would work if I made two more divs one for the left side and one for the right side, and then there will be more stuff in side those divs which are the actual buttons and logo and stuff like that*/
+
+  /*the "aminiteaday" logo goes in this one*/
+  .nav-left {
+    font-weight: bold;
+    font-size: 1.2em;
+  }
+  
+  /* and this one is used for both nav bars, so it would show the login, home and sign up when the user is not logged in and the home, stats and the logs and the log out when the user is logged in*/
+  .nav-right {
+    display: flex;
+    align-items: center;
+    gap: 1em;
+    flex-shrink: 0; /* this is used to make sure that the stuff inside the navbar doesn't shrink when the screen gets smaller, so that the navbar doesn't look weird, I noticed beacuse as someone who likes to zoom in a lot on screens it would be good if the page was responseive upon zoom in and out*/
+  }
+  
+  /* this is for all the links*/
+  .nav-right a {
+    text-decoration: none;
+    color: black;
+    font-weight: 500;
+  }
+  
+  /* i used to have an issue where the log out button would be so much smaller than the sign up because there was 4 elements to share with for that, so I forced them to be the same size by hard coding it in the CSS with a min-width*/
+  .nav-right .nav-btn {
+    display: inline-flex;
+    align-items: center; /* this is used to make sure that the text is centered in the button*/
+    justify-content: center; /* this is used to make sure that the text is centered in the button in case the other one didn't do the job*/
+    padding: 0.6em 1em;
+    min-width: 5rem;
+    font-size: 1rem;
+    line-height: 1;
+    background-color: white;
+    border: 2px solid black;
+    border-radius: 4px;
+    cursor: pointer;
+    text-transform: lowercase;
+    text-decoration: none;
+    white-space: nowrap; /* the no wrap feature makes the text make the buttons bigger instead of making them go to another line.*/
+    transition: background-color 0.2s, color 0.2s, border-color 0.2s;
+  }
+  
+  .nav-right .nav-btn:hover {
+    border-color: grey;
+    color: grey;
+  }
+  
+  /* when i was coding the home page i still had the energy to do external styles, after that I just stuffed in the CSS with internal styles and sometimes just inline stuff*/
+  .home-content {
+      text-align: center;
+  }
+  
+  /* the bit that says "aminuteaday" */
+  .home-title {
+    font-size: 2.5rem;
+    margin-bottom: 0.5rem;
+  }
+  
+  /* the bit that says "make time management natural" */
+  .home-slogan {
+    font-size: 1.5rem;
+    font-weight: bold;
+    margin-bottom: 2rem;
+  }
+  
+  /* the flatart image */
+  .home-image {
+    width: 70%;
+    height: auto;
+    margin-bottom: 2rem;
+  }
+  
+  .home-buttons {
+    display: flex;
+    flex-direction: column; /* the normal flex makes it stack horizontally but I needed them vertical*/
+    gap: 1rem;
+    width: 100%;
+    max-width: 400px; /* I did some trial and error to make this the same width as the slogan*/
+    margin: 0 auto;
+  }
+  
+  .home-buttons a {
+    width: 100%;
+    padding: 0.8em 1em;
+    border: 2px solid transparent;
+    transition: background-color 0.2s, color 0.2s, border-color 0.2s;
+  }
+  
+  .signup-home {
+    background-color: black;
+    color: white;
+    border: 2px solid black;
+  }
+  .signup-home:hover {
+    background-color: white;
+    color: black;
+    border: 2px solid black;
+  }
+  
+  .login-home {
+    background-color: white;
+    color: black;
+    border: 2px solid black !important;
+  }
+  .login-home:hover {
+    color: grey;
+    border: 2px solid grey !important;
+  }
+  
+  /* login page stuff */
+  .login-content {
+    text-align: center;
+  }
+  
+  .login-content form {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    max-width: 400px;
+    margin: 0 auto;
+  }
+  
+  .form-input {
+    width: 100%;
+    padding: 0.8em 1em;
+    font-size: 1rem;
+    border: 2px solid black;
+    border-radius: 4px;
+  }
+  
+  .error-message {
+    color: red;
+    margin: 0;
+    padding: 0;
+  }
+  
+  .login-btn {
+    width: 100%;
+    padding: 0.8em 1em;
+    font-size: 1rem;
+    font-weight: 500;
+    background-color: black;
+    color: white;
+    border: 2px solid black;
+    border-radius: 0px;
+    cursor: pointer;
+  }
+  
+  .login-btn:hover {
+    background-color: white;
+    color: black;
+  }
+  
+  /* the bit that says "already have an account? sign up" */
+  .signup-text {
+    margin-top: 0;
+    font-size: 1rem;
+  }
+  
+  /* the 'sign up' part of the "already have an account? sign up" */
+  .signup-text a {
+    text-decoration: underline;
+    color: black;
+  }
+  
+  .login-title {
+    padding-top: 5rem;
+    font-size: 2rem;
+    font-weight: bold;
+    margin-bottom: 2rem;
+  }
+
+  /* the universal look of the login page needs to be centered */
+  .login-content {
+    text-align: center;
+  }
+  
+  .login-content form {
+    display: flex;
+    flex-direction: column; /* make it go downward*/
+    gap: 1rem; /*this makes sure all the form elements are have some space around it*/
+    max-width: 400px;
+    margin: 0 auto;
+  }
+  
+  /* this gives the nice grand feel of the full width inputs instead of tiny little ones, this is inspired from the sign up and login page of roblox */
+  .form-input {
+    width: 100%;
+    padding: 0.8em 1em;
+    font-size: 1rem;
+    border: 2px solid black;
+    border-radius: 4px;
+  }
+  
+  /* the 'already have an account? log in' line*/
+  .signup-text {
+    margin: 0;
+    font-size: 1rem;
+  }
+  
+  /* the 'log in' part of the 'already have an account? log in'*/
+  .signup-text a {
+    text-decoration: underline;
+    color: black;
+  }
+  
+  /* the sign up button, but it reuses the login button style*/
+  .login-btn {
+    width: 100%;
+    padding: 0.8em 1em;
+    font-size: 1rem;
+    font-weight: 500;
+    background-color: black;
+    color: white;
+    border: 2px solid black;
+    border-radius: 0;
+    cursor: pointer;
+    transition: background-color 0.2s, color 0.2s;
+  }
+  
+  .login-btn:hover {
+    background-color: white;
+    color: black;
+  }
+
+  /*these are all the validations stuff for the sign up page - like when it turns red and green and shows the message and all that*/
+  .input-error {
+    color: red;
+    font-size: 0.9em;
+    margin: 0.5em 0;
+    min-height: 1.2em;
+  }
+
+  .input-error.hidden {
+    visibility: hidden; 
+    /* this just makes it invisible, but it still takes up the space, but later on i did internal styles to make it just disappear completely so this is kind of useless, but I don't want to delete it because i don't want to break the code just in case it was doing work somewhere else*/
+  }
+  
+  input.invalid {
+    border-color: red !important;
+  }
+  
+  input.valid {
+    border-color: green !important;
+  }
+  
+  /* there was an issue before where i couldn't see the boxes turn red and green because the default had the thing turn blue when you type into it so i needed to override it*/
+  input:focus,
+  input.form-input:focus {
+    outline: none !important;
+    box-shadow: none !important;
+    border-color: currentColor; 
+  }

@@ -1,0 +1,36 @@
+{% extends "base_home.html" %}
+
+{% block title %}login{% endblock %}
+
+{% block content %}
+  <div class="login-content">
+    <h1 class="login-title">login</h1>
+
+    <form method="POST" action="{{ url_for('handle_login') }}">
+      <input
+        type="text"
+        name="username"
+        placeholder="username"
+        class="form-input"
+        required
+      />
+      <input
+        type="password"
+        name="password"
+        placeholder="password"
+        class="form-input"
+        required
+      />
+
+      <!-- this one displays the "Username or password is incorrect" message -->
+      {% if message %}
+        <p class="error-message">{{ message }}</p>
+      {% endif %}
+
+      <p class="signup-text">
+        Don't have an account? <a href="{{ url_for('signup') }}">Sign up!</a>
+      </p>
+      <button type="submit" class="login-btn">login</button>
+    </form>
+  </div>
+{% endblock %}

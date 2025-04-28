@@ -1,0 +1,24 @@
+<html>
+    <head>
+        <title>Error</title>
+        <link rel="icon" href="{{ url_for('static', filename='images/favicon.png') }}">
+    </head>
+    <body>
+        <h1 style="margin-top: 50px; text-align: center;">Something went wrong</h1>
+        <p style="display: none;">{{ message }}</p>
+        <p style="text-align: center; color: blue; text-decoration: underline; cursor: pointer;" class="try-again">Click here to try again.</p> 
+        <p style="text-align: center;">If the issue persists, try again later or notify me: chloe.zhu@spcc.nsw.edu.au</p>
+    </body>
+    <script>
+        document.querySelector('.try-again').addEventListener('click', function() {
+            // this is like clicking the back arrow in the browser, but instead of making the user have to figure it out themselves I just did it for them
+            window.history.back();
+        });
+    </script>
+</html>
+
+<style>
+    body {
+        font-family: 'Arial', sans-serif;
+    }
+</style>

@@ -1,0 +1,614 @@
+{% extends "base_session_narrow.html" %}
+
+{% block title %}Log Data{% endblock %}
+
+{% block content %}
+<style>
+  /*By the time I got to this page I jsut wasn't bothered to do external styles anymore*/
+input, select, button {
+    border: 2px solid black;
+    padding: 0.5em;
+    width: 250px;
+    margin-bottom: 0.2em;
+}
+button {
+    width: auto;
+}
+input.invalid, select.invalid {
+    border-color: red;
+}
+input.valid, select.valid {
+    border-color: green;
+}
+.input-error {
+    color: red;
+    font-size: 0.9em;
+    margin-bottom: 0.5em;
+    height: 1.2em;
+}
+.input-error.hidden {
+    display: none;
+}
+#event-window {
+    max-height: 400px;
+    overflow-y: scroll;
+    width: 50%;
+    padding: 1em;
+    border: 1px solid #ccc;
+    margin-top: 2em;
+}
+.hidden {
+    display: none;
+}
+</style>
+
+<p style="display: none;">Hi, {{ username }}.</p>
+<h1 style="text-align: center; margin-top: -30px; padding-top: 0;">Log data for {{ date }}</h1>
+
+<!-- sleep log -->
+ <!-- the onblur and the oninput are both used because I want the box to only turn red if the user left the field without filling correctly (making it turn red instantly would be annoying for the user), but I want it to turn green instantly so the user knows they got it right.-->
+ <h2 style="text-align: center; margin-top: 0.7em;">sleep</h2>
+<div style="text-align: center;">
+    <label>Sleep time yesterday</label><br>
+    <input class="form-input" type="text" id="sleep_time" name="sleep_time" placeholder="e.g. 10:30 PM" 
+           onblur="validateTimeField('sleep_time')" oninput="checkLiveTimeValid('sleep_time')">
+    <div id="err-sleep_time" class="input-error hidden"></div>
+</div>
+
+<div style="text-align: center;">
+    <label>Wake time today</label><br>
+    <input class="form-input" type="text" id="wake_time" name="wake_time" placeholder="e.g. 6:45 AM" 
+           onblur="validateTimeField('wake_time')" oninput="checkLiveTimeValid('wake_time')">
+    <div id="err-wake_time" class="input-error hidden"></div>
+</div>
+
+<h2 style="text-align: center; margin-top: 0.7em;">events</h2>
+<!-- all the activites logs-->
+<!-- if you're wondering about the -3% and the 108% i wasn't bothered to get it to centre because it just wasnt working even when I used margin auto so I just decided to shift manually-->
+<div id="event-window" style="border: 1px solid #ccc; border-radius: 4px; align-items: center; text-align: center; margin: 0 auto; margin-left: -3%; width: 108%;">
+    <div id="events-container">
+        <div class="event" id="event1">
+            <h3 id="event1_title" class="event-title">Event</h3>
+
+            <div>
+                <label>Start time:</label><br>
+                <input class="form-input" type="text" id="event1_start" placeholder="e.g. 8:00 AM"
+                       onblur="validateTimeField('event1_start')" oninput="checkLiveTimeValid('event1_start')">
+                <div id="err-event1_start" class="input-error hidden"></div>
+            </div>
+
+            <div>
+                <label>End time:</label><br>
+                <input class="form-input" type="text" id="event1_end" placeholder="e.g. 9:15 AM"
+                       onblur="validateTimeField('event1_end')" oninput="checkLiveTimeValid('event1_end')">
+                <div id="err-event1_end" class="input-error hidden"></div>
+            </div>
+
+            <div>
+                <div id="activity-select-section-1">
+                    <label>Activity:</label><br>
+                    <!-- all the functions have a number passed in because in practice there will be multiple more fields added in dynamically so I can't get them mixed up -->
+                    <select id="event1_activity"
+                            onchange="checkAddActivity(1); updateEventTitle(1)">
+                        <option disabled selected>- select activity -</option>
+                        {% for activity in activities %}
+                            <option value="{{ activity }}">{{ activity }}</option>
+                        {% endfor %}
+                        <option value="add">Add activity</option>
+                    </select>
+                </div>
+                <!-- this only pops up when the user selected add activity to add stuff, so it defaults to be hidden, and when they add it's added in dynamically, so that's why it's blank -->
+                <div class="activity-form-container hidden" id="activity-form-container-1"></div>
+            </div>
+
+          <!--  I learned that the `this` means that it passes by reference the element that it is in (the tag) in this case the button-->
+            <button disabled type="button" style="transition: background-color 0.2s, color 0.2s, border-color 0.2s; width: 100%; border-radius: 4px;" class="login-home delete-event-button" onclick="deleteEvent(this)">
+                Delete Event
+            </button>
+        </div>
+    </div>
+
+    <br>
+    <!-- The CSS is already very spaghetti. at this point, I was shoving stuff in till it worked-->
+    <button class="login-home" style="font-size: 1rem; transition: background-color 0.2s, color 0.2s, border-color 0.2s; width: 100%; border-radius: 4px;" type="button" id="add_event_button">Add New Event</button>
+</div>
+
+<br>
+<button class="login-btn" style="width: 100%; border-radius: 4px;" type="button" id="finish_log_button">Finish Log</button>
+
+<script>
+let allActivities = JSON.parse('{{ activities|tojson|safe }}');
+// this regex means that the time has to be in the format of HH:MM AM/PM
+const timeRegex = /^(0?[1-9]|1[0-2]):[0-5][0-9] [APap][Mm]$/;
+
+// makes sure that the finish button can't be pressed till everything's good
+function updateFinishButton() {
+  const btn = document.getElementById("finish_log_button");
+  btn.disabled = !allFieldsValid();
+}
+
+
+function allFieldsValid() {
+  // check the sleep logs
+  const sleepOK = document.getElementById("sleep_time").classList.contains("valid");
+  const wakeOK  = document.getElementById("wake_time").classList.contains("valid");
+  // using some logic gates stuff taught in Y11. basically, if the sleep OR the wake time isn't valid, then it returns that the whole thing wouldn't be valid
+  if (!sleepOK || !wakeOK) return false;
+
+  // validate all the other activity event stuff
+  const events = document.querySelectorAll(".event");
+  for (const evt of events) {
+    // find the ones where the ID ends with _start or _end or _activity
+    const start = evt.querySelector('input[id$="_start"]');
+    const end   = evt.querySelector('input[id$="_end"]');
+    const act   = evt.querySelector('select[id$="_activity"]');
+
+    if (!start.classList.contains("valid") ||
+        !end.classList.contains("valid")) {
+      return false;
+    }
+    const v = act.value;
+    if (!v || v === "- select activity -" || v === "add") {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+// this is the one that makes it turn red or green when the user leaves the field
+function validateTimeField(id) {
+    const el = document.getElementById(id);
+    // trim removes the trailing and starting spaces
+    const ok = timeRegex.test(el.value.trim());
+    setValidationState(el, ok, "Time must be HH:MM AM/PM.");
+}
+
+// this is the one that makes it turn green when the user is still in the field typing
+function checkLiveTimeValid(id) {
+  const el  = document.getElementById(id);
+  const err = document.getElementById(`err-${id}`);
+  const ok  = timeRegex.test(el.value.trim());
+
+  if (ok) {
+    // turn green and hide the error message from before if there was one
+    el.classList.add("valid");
+    el.classList.remove("invalid");
+    err.classList.add("hidden");
+  } else {
+    // remove green if not valid, but it doesn't add the red (that's for the validateTimeField function which runs onblur)
+    el.classList.remove("valid");
+  }
+}
+
+// this is the one that shows the error message and the red and green outline
+function setValidationState(el, valid, msg) {
+  const err = document.getElementById(`err-${el.id}`);
+  // empty fields don't have error messages otherwise the user will be bombarded with messages upon new form
+  const hasInput = el.value.trim().length > 0;
+
+  if (!valid && hasInput) {
+    // make it red and show error message
+    el.classList.add("invalid");
+    el.classList.remove("valid");
+    err.textContent = msg;
+    err.classList.remove("hidden");
+  } else {
+    // this is when it is blank (so no red or green OR error message)
+    el.classList.remove("invalid");
+    el.classList.remove("valid");
+    err.textContent = "";
+    err.classList.add("hidden");
+
+    if (valid) {
+      // this is when it is valid, so green and no error message
+      el.classList.add("valid");
+    }
+  }
+}
+
+// this one checks if the user selected the add activity and shows that little form where they can add new activities accordingly
+function checkAddActivity(n) {
+    const sel = document.getElementById(`event${n}_activity`);
+    if (sel.value === "add") {
+        document.getElementById(`activity-select-section-${n}`).classList.add("hidden");
+        const cont = document.getElementById(`activity-form-container-${n}`);
+        cont.innerHTML = getActivityFormHTML(n);
+        cont.classList.remove("hidden");
+    }
+}
+
+// this function just stores the add activity form dynamic html
+function getActivityFormHTML(n) {
+  return `
+    <div id="activity-form-section-${n}">
+      <hr style="border: none; border-top: 1px solid #ccc; margin: 10px 0;">
+      <h3>Add Activity</h3>
+      <label>Activity name:</label>
+      <input type="text" id="new_activity_name_${n}" placeholder="e.g. Studying"
+             oninput="validateActivityName(${n})">
+      <div id="err-new_activity_name_${n}" class="input-error hidden"></div>
+
+      <div class="good-row">
+        <label>Good for you?</label>
+        <select id="new_activity_is_good_${n}">
+          <option value="true">Yes</option>
+          <option value="false">No</option>
+        </select>
+      </div>
+
+      <div class="activity-btn-row">
+        <button
+          type="button"
+          class="login-home"
+          onclick="cancelAddActivity(${n})"
+        >Cancel</button>
+        <button
+          type="button"
+          id="submit_new_activity_${n}"
+          disabled
+          class="delete-event-button"
+        >Add Activity</button>
+      </div>
+    </div>`;
+}
+
+// this runs when the cancel button is pressed. it hides the form and shows the dropdown again
+function cancelAddActivity(n) {
+    const cont = document.getElementById(`activity-form-container-${n}`);
+    cont.innerHTML = "";
+    cont.classList.add("hidden");
+    document.getElementById(`activity-select-section-${n}`).classList.remove("hidden");
+    document.getElementById(`event${n}_activity`).value = "- select activity -";
+    // makes sure the finish log button is updated because if it was diabled cuz the activity was invalid, now it doesn't matter
+    updateFinishButton();
+}
+
+// this hides the activity form and shows the dropdown, doesn't actually add a activity (this is a helper function)
+function finishAddActivity(n) {
+    document.getElementById(`activity-form-container-${n}`).classList.add("hidden");
+    document.getElementById(`activity-select-section-${n}`).classList.remove("hidden");
+    updateFinishButton();
+}
+
+function validateActivityName(n) {
+    const inp = document.getElementById(`new_activity_name_${n}`);
+    const btn = document.getElementById(`submit_new_activity_${n}`);
+    const ok  = /^[A-Za-z0-9 ]{1,20}$/.test(inp.value.trim());
+    setValidationState(inp, ok, "1–20 letters/numbers/spaces");
+    if (!ok) {
+      btn.disabled = true;
+      return;
+    }
+
+    // this whole bit checks if the activity already exists or not so the user not has duplicate activities
+    // this is a GET request, but there's no need to write that on because thats the default.
+    // GET and POST are actually really similar, they were a lot easier to learn than I thought. it is just that the GET gives data in the URL and the POST gives in the request body.
+    // the encodeURIComponent makes it spaces and stuff is works
+    fetch(`/check_activity_name?name=${encodeURIComponent(inp.value.trim())}`)
+      .then(r=>r.json())
+      // in this one I didn't do the JSON.parse[[r|tojson|safe]] - i had to use the square brackets there cuz flask would think it needs to render it if it was curly. because when flask returns the data it would automatically make it a string that doens't need to changed from python dictionary structure to JSON sturcture.
+      // r is the server's response, and the => is an arrow function that returns the r.json()
+      // in the one below the d is the data from the server that's passed, and the curley bracket after the arrow means that the arrow function is more complex and needs a body
+      .then(d => {
+        if (d.exists) {
+          setValidationState(inp, false, "Already exists");
+          btn.disabled = true;
+        } else {
+          setValidationState(inp, true, "");
+          btn.disabled = false;
+        }
+      })
+      .catch(() => {
+        setValidationState(inp, false, "Error checking activity name");
+        btn.disabled = true;
+      });
+}
+
+// in this one the e is the event object, and it contains all the information about the click
+// you can get the target, which is the element that was clicked.
+// before i used to get these weird errors when I click a random bit of the page, and it said that it can't do stuff on a none object, then I realised it was because not all objects have an ID, so I used the ?. to check if it has an ID first and then it was fixed.
+document.addEventListener("click", e => {
+  if (e.target.id?.startsWith("submit_new_activity_")) {
+    // I got tired coding the complex stuff so decided to line the equals signs like they are in math. I did it for a lot of other ones too. probably a waste of time but oh well.
+    const n    = e.target.id.split("_").pop();
+    const name = document.getElementById(`new_activity_name_${n}`).value.trim();
+    const good = document.getElementById(`new_activity_is_good_${n}`).value;
+    // the content type tells the structure is like key=value&key=value etc
+    fetch("/add_activity", {
+      method: "POST",
+      headers: {"Content-Type":"application/x-www-form-urlencoded"},
+      body: `name=${encodeURIComponent(name)}&isGood=${encodeURIComponent(good)}`
+    })
+    .then(r=>r.json())
+    .then(d => {
+      if (!d.success) {
+        return window.location = `/error?message=${encodeURIComponent(d.message)}`;
+      }
+      allActivities = d.activities;
+
+      // this part changes all the selects to have the new activity
+      document.querySelectorAll("select[id$='_activity']").forEach(dd => {
+        // I did this one to ensure that the stuff already selected in there will stay the same.
+        const prev = dd.value;
+        
+        // the map makes the list into another list and then the arrow function inside it takes each of the list things and turns it into the thing in the new list.
+        dd.innerHTML = `<option disabled>- select activity -</option>` +
+          allActivities.map(a => `<option value="${a}">${a}</option>`).join("") +
+          `<option value="add">Add activity</option>`;
+        // the question mark works as a one line if and else i'm not sure now the tertiary thing works but it's basically condition ? do if true : do if false
+        dd.value = allActivities.includes(prev) ? prev : "- select activity -";
+      });
+
+      document.getElementById(`event${n}_activity`).value = d.selected;
+      
+      // this is just that function that hides the form then show the dropdown again
+      finishAddActivity(n);
+      // this one changes the title of the event so that's how it changes from "event" to the actual name of the activity
+      updateEventTitle(n);
+      updateFinishButton();
+    })
+    .catch(() => window.location = "/error?message=Unexpected error");
+  }
+});
+
+function deleteEvent(btn) {
+  btn.closest(".event").remove();
+  updateFinishButton();
+  updateDeleteButtons();
+}
+
+// used when the activity is changed for an event
+function updateEventTitle(n) {
+  const sel   = document.getElementById(`event${n}_activity`);
+  const title = document.getElementById(`event${n}_title`);
+  if (sel.value && sel.value !== "- select activity -" && sel.value !== "add") {
+    title.textContent = sel.value;
+  } else {
+    title.textContent = "Event";
+  }
+}
+
+document.getElementById("add_event_button").addEventListener("click", () => {
+  const container = document.getElementById("events-container");
+  // this is the id of the new event, it's had to figure out unique ids and stuff so I just got the length of it all and added one. thinking again it could have a bug because then you would be able to have 2 event ID's 2 so I should have gotten the biggest ID in the events table and added one to that to ensure it's unique. but it works for now, and it's just a prototype, some things rely on this now so I won't fiddle with it.
+  const idx       = container.getElementsByClassName("event").length + 1;
+  const div       = document.createElement("div");
+  // did this to maek sure that it's possible to grab all the events
+  div.className   = "event";
+  // and this would be used to get a particular event form
+  div.id          = `event${idx}`;
+
+  div.innerHTML = `
+    <h3 id="event${idx}_title" class="event-title">Event</h3>
+
+    <div>
+      <label>Start time:</label><br>
+      <input
+        class="form-input"
+        type="text"
+        id="event${idx}_start"
+        placeholder="e.g. 8:00 AM"
+        onblur="validateTimeField('event${idx}_start')"
+        oninput="checkLiveTimeValid('event${idx}_start')"
+      />
+      <div id="err-event${idx}_start" class="input-error hidden"></div>
+    </div>
+
+    <div>
+      <label>End time:</label><br>
+      <input
+        class="form-input"
+        type="text"
+        id="event${idx}_end"
+        placeholder="e.g. 9:15 AM"
+        onblur="validateTimeField('event${idx}_end')"
+        oninput="checkLiveTimeValid('event${idx}_end')"
+      />
+      <div id="err-event${idx}_end" class="input-error hidden"></div>
+    </div>
+
+    <div>
+      <div id="activity-select-section-${idx}">
+        <label>Activity:</label><br>
+        <select
+          id="event${idx}_activity"
+          onchange="checkAddActivity(${idx}); updateEventTitle(${idx})"
+        >
+          <option disabled selected>- select activity -</option>
+          ${allActivities.map(a => `<option value="${a}">${a}</option>`).join("")}
+          <option value="add">Add activity</option>
+        </select>
+      </div>
+      <div
+        class="activity-form-container hidden"
+        id="activity-form-container-${idx}"
+      ></div>
+    </div>
+
+    <button
+      type="button"
+      class="login-home delete-event-button"
+      style="transition: background-color 0.2s, color 0.2s, border-color 0.2s;
+             width: 100%; border-radius: 4px;"
+      onclick="deleteEvent(this)"
+    >
+      Delete Event
+    </button>
+  `;
+
+  container.appendChild(div);
+  updateFinishButton();
+  updateDeleteButtons();
+  setTimeout(updateFinishButton, 0);
+});
+
+// FINAALLY I CAN SUBMIT THE LOG, i swear this was way to much effort.
+document.getElementById("finish_log_button").addEventListener("click", () => {
+  const sleep = document.getElementById("sleep_time").value.trim();
+  const wake  = document.getElementById("wake_time").value.trim();
+
+  // this was killing me, the querySelectorAll returns a list-like structure and I thought it'd be an array but it's actually a weird thing called a NodeList which the map function doesn't like, so I had to convert it to an array.
+
+  // in all the pro scripts I see online they make all the things indented so they match up so I guess I'm joining the club. I also learned that the dollar sign means "end":
+  const events = Array.from(document.querySelectorAll(".event")).map(evt => ({
+    start:    evt.querySelector('input[id$="_start"]').value.trim(),
+    end:      evt.querySelector('input[id$="_end"]').value.trim(),
+    activity: evt.querySelector('select[id$="_activity"]').value
+  }));
+
+  fetch("/submit_log", {
+    method:  "POST",
+    headers: {"Content-Type":"application/json"},
+    body:    JSON.stringify({ events, sleep, wake })
+  })
+  .then(r=>r.json())
+  .then(d => {
+    if (d.success) window.location = "/stats";
+    else alert("Some entries failed: " + d.message);
+  })
+  .catch(() => alert("Error submitting log."));
+});
+
+
+// this makes sure that when the sleep and wake time are valid or not the finish log thing updates.
+document.addEventListener("DOMContentLoaded", updateFinishButton);
+["sleep_time","wake_time"].forEach(id => {
+  const el = document.getElementById(id);
+  el.addEventListener("input", () => { checkLiveTimeValid(id); updateFinishButton(); });
+  el.addEventListener("blur",  () => { validateTimeField(id);   updateFinishButton(); });
+});
+
+// whenever an event start/end changes validity:
+// this one uses that bubbling concept taught in the Grok JS tutorials.
+document.getElementById("event-window").addEventListener("input", e => {
+  // this means it selects anything that is the element 'input' and has an id that starts with 'event' and ends with '_start' or '_end'
+  if (e.target.matches('input[id^="event"][id$="_start"],input[id^="event"][id$="_end"]')) {
+    checkLiveTimeValid(e.target.id);
+    updateFinishButton();
+  }
+});
+document.getElementById("event-window").addEventListener("blur", e => {
+  if (e.target.matches('input[id^="event"][id$="_start"],input[id^="event"][id$="_end"]')) {
+    validateTimeField(e.target.id);
+    updateFinishButton();
+  }
+}, true);
+// i learned that there's another thing called "capture" because the blur event doesn't work will when bubbling cuz the user would need to go out of the entire window for it to trigger, but i need it to trigger when any tiny little event thing is blurred.
+
+// whenever an activity select changes this is run (because the previous one only works when the input texts get typed in)
+document.getElementById("event-window").addEventListener("change", e => {
+  if (e.target.matches('select[id^="event"][id$="_activity"]')) {
+    // this tells the event title the id of the event title to change to display the new activity. this actually isn't that good because the /\d+/ is a regex that matches any digits, and if there are multiple events it'll just take the first one. which isn't good becase now you can only be working for under 9 events.
+    updateEventTitle( Number(e.target.id.match(/\d+/)[0]) );
+    updateFinishButton();
+  }
+});
+
+// this thing makes sure that the delete buttons can be pressed when there is more than one event and it can't be pressed if there is one event because i'm not going to allow 0 events in a day.
+function updateDeleteButtons() {
+  const btns = document.querySelectorAll('.delete-event-button');
+  const count = document.querySelectorAll('#events-container .event').length;
+  btns.forEach(btn => {
+    btn.disabled = count <= 1;
+  });
+}
+</script>
+
+<style>
+  .delete-event-button {
+    margin-top: 10px;
+    font-size: 1rem !important;
+    background-color: black !important;
+    color: white !important;
+    border: 2px solid rgb(0, 0, 0) !important;
+    transition: background-color 0.2s, color 0.2s, border-color 0.2s;
+  }
+  .delete-event-button:hover {
+    background-color: white !important;
+    color: black !important;
+    border: 2px solid black !important;
+  }
+
+  #event-window select {
+    width: 100% !important;
+    padding: 0.8em 1em !important;
+    font-size: 1rem !important;
+    border: 2px solid black !important;
+    border-radius: 4px !important;
+    margin-bottom: 0.5em !important;
+    background-color: white !important;
+  }
+
+  .activity-form-container input {
+    width: 100% !important;
+    padding: 0.8em 1em !important;
+    font-size: 1rem !important;
+    border: 2px solid black !important;
+    border-radius: 4px !important;
+    margin-bottom: 0.5em !important;
+  }
+
+  .good-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5em;
+    margin: 1rem 0;
+  }
+  .good-row label {
+    white-space: nowrap;
+  }
+  .good-row select {
+    flex: 1;
+    /*the flex = 1 means to take up one equal space so if there's like two objects in there then it's equivalent to width: 50%.*/
+    padding: 0.8em 1em;
+    font-size: 1rem;
+    border: 2px solid black;
+    border-radius: 4px;
+    background-color: white;
+  }
+
+  .activity-btn-row {
+    display: flex;
+    /*this puts a gap of 1 rem between each of the flex elemtns
+    a rem is the relative to the font size of the html element (root)*/
+    gap: 1rem;
+    margin-bottom: 1rem;
+    
+  }
+  .activity-btn-row .login-home, 
+  .activity-btn-row .delete-event-button {
+    flex: 1;
+    width: auto !important;
+    height: 35px !important;
+    border-radius: 4px !important;
+    margin: auto !important;
+  }
+
+  #finish_log_button:disabled {
+    background-color: #e0e0e0 !important;
+    color: #888888 !important;
+    border-color: #cccccc !important;
+    cursor: not-allowed !important;
+  }
+
+  #finish_log_button:disabled:hover {
+    background-color: #e0e0e0 !important;
+    color: #888888 !important;
+    border-color: #cccccc !important;
+  }
+
+  .delete-event-button:disabled {
+    background-color: #e0e0e0 !important;
+    color: #888888    !important;
+    border-color: #cccccc !important;
+    cursor: not-allowed !important;
+  }
+
+  .delete-event-button:disabled:hover {
+    background-color: #e0e0e0 !important;
+    color: #888888    !important;
+    border-color: #cccccc !important;
+  }
+</style>
+{% endblock %}

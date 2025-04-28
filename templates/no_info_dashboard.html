@@ -1,0 +1,30 @@
+{% extends "base_session.html" %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+    <h1 style="text-align: center;">Hello, {{ username }}!</h1>
+    
+    <hr style="margin: 20px 0;">
+
+    <p class="login-title" style="text-align: center; margin-bottom: 0; padding-bottom: 0; font-size: 1.5em; margin-top: 1em; padding-top: 0;">Welcome Message</p>
+    <p style="text-align: center;">Welcome to your new account!</p>
+
+    <p style="margin-top: 20px; text-align: center;">This is your home page.</p>
+
+    <p style="margin-top: 20px; text-align: center;">You use the logs page to enter your time at the end of each day. (A minute a day!)</p>
+    <p style="text-align: center;">You can access it on the nav bar or with this link: <a href="{{ url_for('logs') }}">Log your time</a>.</p>
+
+    <p style="margin-top: 20px; text-align: center;">You can use your stats page to see how you've been doing lately.</p>
+    
+    <p style="margin-top: 20px; text-align: center;">Note that this is a prototype in beta, so some features may be missing or incomplete.</p>
+    <p style="text-align: center;">But nonetheless, I hope you enjoy using it!</p>
+
+    <hr style="margin: 20px 0;">
+    <p class="login-title" style="text-align: center; margin-bottom: 0; padding-bottom: 0; font-size: 1.5em; margin-top: 1em; padding-top: 0;">Notifications</p>
+    <p style="text-align: center;">Notifications will pop up here!</p>
+
+    <p class="login-title" style="text-align: center; margin-bottom: 0; padding-bottom: 0; font-size: 1.5em; margin-top: 1em; padding-top: 0;">Monthly Summary</p>
+    <p style="text-align: center;">Monthly summary will pop up here!</p>
+
+    {% endblock %}
