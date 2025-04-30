@@ -548,76 +548,58 @@ def userHasAnyEvents(userID: int) -> bool:
 # this is used for the sleep insights bar chart.
 def getSleepHoursLastWeek(userID: int) -> tuple[list[str], list[float]]:
     """
-    Returns a tuple of (labels, values):
-    - labels: list of 7 weekday strings like ["Sat", "Sun", ..., "Fri"]
-    - values: corresponding list of sleep durations in hours (rounded to 1 decimal)
-
-    The value for a day means: sleep that began on that day and ended the next.
+    Returns two lists of length 7:
+      - labels: ['mon','tue',...,'sun'] for the last 7 days *ending yesterday* e.g. the example would be for the monday.
+      - values: total hours slept (rounded to 0.1h) assigned to each of those days
+                (i.e. a sleep that ends on Wed morning is counted for Tue’s label).
     """
     conn = sqlite3.connect(DATABASE_FILE)
     c = conn.cursor()
 
-    # timezone. AGAIN.
+    # again
     c.execute("SELECT timezone FROM Users WHERE userID = ?", (userID,))
     row = c.fetchone()
     if not row:
         conn.close()
-        raise ValueError(f"userID {userID} not found.")
-    user_timezone = row[0]
+        raise ValueError(f"userID {userID} not found")
+    user_tz = row[0]
 
-    now_utc = datetime.utcnow().replace(tzinfo=ZoneInfo("UTC")) - timedelta(days=1)
-    now_local = UTCToLocal(now_utc, user_timezone)
+    # find yesterday in the local time cuz it would start from the day before
+    now_utc   = datetime.utcnow().replace(tzinfo=ZoneInfo("UTC"))
+    now_local = UTCToLocal(now_utc, user_tz)
+    yesterday = now_local.date() - timedelta(days=1)
 
-    # this gets the start and end of the week in the user's local timezone.
-    # starts at midnight 7 days ago and ends at midnight the next day.
-    start_local = datetime.combine((now_local.date() - timedelta(days=6)), datetime.min.time(), tzinfo=ZoneInfo(user_timezone))
-    end_local = datetime.combine(now_local.date() + timedelta(days=1), datetime.min.time(), tzinfo=ZoneInfo(user_timezone))
+    # this makes a dictionary of the dates of the past 7 days starting from yesterday.
+    window_dates = [yesterday - timedelta(days=i) for i in reversed(range(7))]
 
-    start_utc = localToUTC(start_local)
-    end_utc = localToUTC(end_local)
+    sleep_by_date = { d: 0.0 for d in window_dates }
 
     c.execute("""
-        SELECT startTime, endTime FROM Events
+        SELECT startTime, endTime
+        FROM Events
         WHERE userID = ? AND activityID = 0
-        AND endTime >= ? AND startTime <= ?
-    """, (userID, DatetimeToISO(start_utc), DatetimeToISO(end_utc)))
-
+        ORDER BY endTime DESC
+        LIMIT 7
+    """, (userID,))
     rows = c.fetchall()
     conn.close()
 
-    # creates a dictionary like this: {0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0}
-    # 0 = Monday, ..., 6 = Sunday, because the keys will represent the day of the week.
-    sleep_by_day = {i: 0 for i in range(7)}  # 0 = Monday, ..., 6 = Sunday
+    for start_iso, end_iso in rows:
+        start_utc = ISOToDatetime(start_iso)
+        end_utc   = ISOToDatetime(end_iso)
+        end_loc   = UTCToLocal(end_utc,   user_tz)
 
-    for start, end in rows:
-        start_dt = ISOToDatetime(start)
-        end_dt = ISOToDatetime(end)
+        hours = round((end_utc - start_utc).total_seconds() / 3600, 1)
 
-        start_local = UTCToLocal(start_dt, user_timezone)
-        end_local = UTCToLocal(end_dt, user_timezone)
+        bucket_date = (end_loc.date() - timedelta(days=1))
+        if bucket_date in sleep_by_date:
+            sleep_by_date[bucket_date] = hours
 
-        if end_local <= start_local:
-            continue  # this bit is extra validation just in case anything in the database is broken.
-
-        day_index = (start_local.weekday())  
-        # this actually returns weekday as a number, monday=0 ... sunday=6
-        sleep_minutes = (end_local - start_local).total_seconds() / 60
-        if sleep_minutes > 24*60:
-            sleep_minutes -= 24*60
-        sleep_by_day[day_index] += sleep_minutes
-
-    # labels would look like this: ["sat", "sun", "mon", "tue", "wed", "thu", "fri"] or ["tue", "wed", "thu", "fri", "sat", "sun", "mon"] depending on what day the user is on
-    # values stores the sleep duration in hours, rounded to 1 decimal place, for each day (it's kind of like a dictionary but it's two lists instead this is because the chart library likes it like that)
-    labels = []
-    values = []
-    for i in range(6, -1, -1):
-        day = (now_local.date() - timedelta(days=i))
-        weekday = day.strftime("%a").lower()  # e.g. wed, thu, fri, sat, sun, mon, tue
-        weekday_index = day.weekday()
-        labels.append(weekday)
-        values.append(round(sleep_by_day[weekday_index] / 60, 1))
+    labels = [d.strftime("%a").lower() for d in window_dates]
+    values = [sleep_by_date[d] for d in window_dates]
 
     return labels, values
+
 
 def getDailyQualityScores(userID: int) -> tuple[list[str], list[int]]:
     """
